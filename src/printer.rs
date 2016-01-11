@@ -18,7 +18,7 @@ impl StringWriter {
             return;
         }
 
-        for _ in 0..(self.indent_level - 1) {
+        for _ in 0..self.indent_level {
             // Hardcoded 4 space tabs
             self.write("    ");
         }
@@ -67,14 +67,12 @@ impl<'a> Print for Block<'a> {
     fn print(&self, writer: &mut StringWriter) {
         writer.do_indent(&self, |context, writer| {
             for statement in &context.statements {
-                writer.do_line(&{}, |_, writer| {
-                    statement.print(writer);
-                });
+                statement.print(writer);
             }
             match context.return_statement {
                 Some(ref statement) => {
                     writer.do_line(&{}, |_, writer| {
-                        writer.write("return ");
+                        writer.write("return");
                         statement.print(writer);
                     });
                 }
@@ -278,7 +276,6 @@ impl<'a> Print for NameList<'a> {
 
 impl<'a> Print for ReturnStatement<'a> {
     fn print(&self, writer: &mut StringWriter) {
-        writer.write("return");
         match self.expressions {
             Some(ref list) => {
                 writer.write(" ");
@@ -516,7 +513,80 @@ pub fn pretty_print(ast: Block) -> String {
     return writer.buf;
 }
 
-#[cfg(test)]
-mod tests {
 
+#[test]
+fn test_print() {
+    let target = r#"
+local x = 2;
+local y = 4;
+function add()
+    return x + y
+end"#;
+    let mut writer = StringWriter::new(-1);
+    let ast = Block {
+        statements: vec![
+            Statement::LocalVariableAssignment{
+                names: NameList {
+                    first: Name {
+                        identifier: "x"
+                    },
+                    remainder: vec![]
+                },
+                initializers: Some(ExpressionList {
+                    first: Expression::Numeral(Numeral {
+                        content: 2.0
+                    }),
+                    remainder: vec![]
+                })
+            },
+            Statement::Semicolon,
+            Statement::LocalVariableAssignment{
+                names: NameList {
+                    first: Name {
+                        identifier: "y"
+                    },
+                    remainder: vec![]
+                },
+                initializers: Some(ExpressionList {
+                    first: Expression::Numeral(Numeral {
+                        content: 4.0
+                    }),
+                    remainder: vec![]
+                })
+            },
+            Statement::Semicolon,
+            Statement::FunctionDeclaration{
+                name: FunctionName {
+                    root: Name {
+                        identifier: "add"
+                    },
+                    qualifiers: vec![],
+                    self_qualifier: None,
+                },
+                body: FunctionBody {
+                    parameters: None,
+                    body: Block {
+                        statements: vec![],
+                        return_statement: Some(ReturnStatement {
+                            expressions: Some(ExpressionList {
+                                first: Expression::BinaryOperator(
+                                    Box::new(Expression::PrefixExpression(Box::new(PrefixExpression::Var(Box::new(Var::Named(Name {
+                                        identifier: "x",
+                                    })))))),
+                                    BinaryOperator::Add,
+                                    Box::new(Expression::PrefixExpression(Box::new(PrefixExpression::Var(Box::new(Var::Named(Name {
+                                        identifier: "y",
+                                    }))))))
+                                ),
+                                remainder: vec![],
+                            })
+                        })
+                    }
+                }
+            }
+        ],
+        return_statement: None,
+    };
+    ast.print(&mut writer);
+    assert_eq!(writer.buf, target)
 }
