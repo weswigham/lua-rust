@@ -1,0 +1,7 @@
+[package]
+name = "lua"
+version = "0.1.0"
+authors = ["Wesley Wigham <wwigham@gmail.com>"]
+
+[dependencies]
+nom = "~1.0.0"
